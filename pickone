@@ -1,0 +1,90 @@
+#!/bin/bash
+set -e
+
+find . -type d -name theme > guess.txt
+declare -i count=1
+echo "$count"
+OPTIONS=()
+
+while read LINE; do
+    OPTIONS+=($count)
+    OPTIONS+=($LINE)
+    let count=count+1
+done < guess.txt
+rm guess.txt
+
+#eg .... OPTIONS=(1 "Option 1" 2 "Option 2" 3 "Option 3")
+echo ${OPTIONS[*]}
+sleep 3
+
+HEIGHT=15
+WIDTH=60
+CHOICE_HEIGHT=4
+BACKTITLE="Backtitle here"
+TITLE="Arduino themes"
+MENU="Choose one of the following options:"
+
+
+declare -i CHOICE=$(dialog --clear \
+                --backtitle "$BACKTITLE" \
+                --title "$TITLE" \
+                --menu "$MENU" \
+                $HEIGHT $WIDTH $CHOICE_HEIGHT \
+                "${OPTIONS[@]}" \
+                2>&1 >/dev/tty)
+
+clear
+
+ARD_INSTALL=/home/dwade/arduino-1.8.19/lib
+
+if [ ! -d $ARD_INSTALL ]; then
+    RED "arduino not installed at $ARD_INSTALL"
+    exit
+fi
+
+[ -d $ARD_INSTALL/theme.orig ] || mv $ARD_INSTALL/theme $ARD_INSTALL/theme.orig
+
+rm -rf $ARD_INSTALL/theme
+
+#echo "num options are ${#OPTIONS[@]}"
+#echo "OPTIONS = ${OPTIONS[@]}"
+
+# options are 1 based. convert to zero based.
+# but options are ordered in pairs, multipy by two
+# but the file name is the next entry, add one
+
+echo "CHOICE = $CHOICE"
+CHOICE=$CHOICE-1
+CHOICE=$CHOICE*2
+CHOICE=$CHOICE+1
+echo "INDEX = $CHOICE"
+
+DIR="${OPTIONS[$CHOICE]}"
+
+if [ ! -d $DIR/syntax ]; then
+    RED "$DIR needs a directory called 'syntax', it's missing, cannot install"
+    BLINK_RED "... aborting"
+    exit
+fi
+
+echo "PICKING directory $DIR"
+cp -a $DIR $ARD_INSTALL
+
+echo "------------- src -------------"
+ls $DIR
+echo "------------- dest ------------"
+ls $ARD_INSTALL/theme
+
+#case $CHOICE in
+#        1)
+#            echo "You chose Option 1"
+#            ;;
+#        2)
+#            echo "You chose Option 2"
+#            ;;
+#        3)
+#            echo "You chose Option 3"
+#            ;;
+#esac
+
+
